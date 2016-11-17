@@ -5,11 +5,12 @@
 
 void _start() {
 	
-	int bytes_written = printf(4, 
+	int bytes_written = varargstest(5, 
 			  "string 1: lalala",
 			  "string 2: muahahahah",
 			  "string 3: brutta carettina",
 			  "string 4: cosama"
+			  "string 5: lalalala\n\n\n\n"
 	);
 	
 }
