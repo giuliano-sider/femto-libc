@@ -310,8 +310,8 @@ int printf(const char *fmt, ...) {
 				}
 				int i = 0;
 				while (number > 0) {
-					fieldptr[i] = digits[number%radix];
-					number /= radix;
+					fieldptr[i] = digits[mod(number, radix)];
+					number = udiv(number, radix);
 					i++;
 				}
 				if (show0xor0) {
