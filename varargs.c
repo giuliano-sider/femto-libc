@@ -1,7 +1,7 @@
 #include <stdarg.h>
-#include "syscalls.h"
+
 #include "femtolibc.h"
-#include "divmod.h" // gcc doesn't compile division and modulo operations ?!
+
 
 int varargstest(int n, ...);
 
@@ -11,10 +11,13 @@ void _start() {
 			  "string 1: lalala",
 			  "string 2: muahahahah",
 			  "string 3: brutta carettina",
-			  "string 4: cosama"
+			  "string 4: cosama",
 			  "string 5: lalalala\n\n\n\n"
 	);
 	printf("bytes written = %i\n", bytes_written);
+	while (1) {
+		bytes_written = bytes_written;
+	}
 }
 
 int varargstest(int n, ...) {
@@ -26,7 +29,7 @@ int varargstest(int n, ...) {
 		const char *s = va_arg(args, const char*);
 		int l = strlen(s);
 		if (l > 0)
-			write(1, s, strlen(s));
+			write(1, s, l);
 		total += l;
 	}
 	va_end(args);

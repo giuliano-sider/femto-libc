@@ -1,0 +1,20 @@
+target remote localhost:5000
+b _start
+b flushprintfbuffer
+#b addchartoprintfbuffer
+b reset_specifier_read
+b print_field
+#b init_printf_state_machine
+#b hasnextchar
+#b nextchar
+#b printf
+#b udiv
+#b umod
+#b write
+#b strlen
+#b isdigit
+#b toupper
+#b strtol
+#b uitoa
+#b strtoupper
+c
