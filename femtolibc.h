@@ -23,5 +23,6 @@ int getchar();
 long int strtol(const char *nptr, char **endptr, int base);
 int uitoa(unsigned int number, char *buff, int radix);
 void strtoupper(char *s);
+int puts(const char *s);
 
 #endif // FEMTO_LIBC_H
