@@ -12,6 +12,16 @@
 #include "printf.h"
 #include "divmod.h"
 
+
+
+
+// arm-eabi-gdbtui is behaving badly
+#ifndef NDEBUG
+#define debugprint(s) puts(s);
+#else 
+#define debugprint(s)
+#endif
+
 int strlen(const char *s);
 int isspace(int c);
 int isdigit(int c);

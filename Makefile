@@ -2,7 +2,7 @@
 TEXTADDR = 0x77802000
 DATAADDR = 0x77804800
 
-#CC_FLAGS = -O0
+CC_FLAGS = -O0
 #LD_FLAGS = -mcpu=arm8
 #AS_FLAGS = -v -mcpu=arm8 -march=armv8
 

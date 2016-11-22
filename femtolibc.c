@@ -50,9 +50,11 @@ char *strrev(char *s) {
 	int l = strlen(s) - 1;
 	int i = 0;
 	while (i < l) {
+		debugprint("in strrev")
 		char tmp = s[l];
 		s[l] = s[i];
 		s[i] = tmp;
+		i++;
 	}
 	return s;
 }

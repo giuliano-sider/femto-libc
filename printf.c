@@ -9,6 +9,8 @@
 #include "printf.h"
 
 
+
+
 // flushes the printf internal buffer to stdout. returns number of characters written
 static int flushprintfbuffer(struct printf_state_machine *psm) {
 	int writecount = 0;
@@ -49,6 +51,7 @@ static void print_field(struct printf_state_machine *psm, char *field) {
 			l += 2;
 		}
 	}
+	debugprint("print_field 1")
 	if (psm->flags.mustshowsign || psm->sign == '-') {
 		field[l] = psm->sign;
 		l++;
@@ -56,10 +59,11 @@ static void print_field(struct printf_state_machine *psm, char *field) {
 		field[l] = ' ';
 		l++;
 	}
+	debugprint("print_field 2")
 	field[l] = '\0';
 	if (psm->specifier == 'x' || psm->specifier == 'X' || psm->specifier == 'o' || psm->specifier == 'd' || psm->specifier == 'i')
 		strrev(field); // numbers are backwards
-
+	debugprint("print_field 3")
 	int padding = psm->minfieldwidth - l;
 	if (psm->flags.left_justify) {
 		int i;
@@ -80,6 +84,7 @@ static void print_field(struct printf_state_machine *psm, char *field) {
 			addchartoprintfbuffer(psm, field[i]);
 		}
 	}
+	debugprint("print_field 4")
 }
 
 static void reset_specifier_read(struct printf_state_machine *psm) {
@@ -261,13 +266,13 @@ int vprintf(const char *fmt, va_list args) {
 				print_field(&psm, psm.asciinumberfield);
 				break;
 			case 'p': // issue: we cast the pointer to an unsigned int, which works on this specific 32 bit architecture
-				puts("in specifier p handler");
+				debugprint("in specifier p handler, before utioa");
 				uitoa((unsigned int)va_arg(args, void*), psm.asciinumberfield, 16);
-				puts("after uitoa");
+				puts("in specifier p handler, after uitoa");
 				psm.flags.show0xor0 = 1;
 				psm.specifier = 'x';
 				print_field(&psm, psm.asciinumberfield);
-				puts("after print_field");
+				puts("in specifier p handler, after print_field");
 				break;
 			case 'X':
 			case 'x':
