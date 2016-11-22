@@ -35,19 +35,6 @@ static void addchartoprintfbuffer(struct printf_state_machine *psm, char c) {
 }
 
 
-static void reset_specifier_read(struct printf_state_machine *psm) {
-	psm->readingstate = READNEXTCHAR;
-	psm->flags.left_justify = 0;
-	psm->flags.mustshowsign = 0;
-	psm->flags.blankspaceinplaceofsign = 0;
-	psm->flags.show0xor0 = 0;
-	psm->flags.leftpadwithzeroes = 0;
-	psm->minfieldwidth = 0;
-	psm->length_modifier = NONE;
-	psm->sign = '+';
-}
-
-
 static void print_field(struct printf_state_machine *psm, char *field) {
 				
 	int l = strlen(field);
@@ -70,34 +57,47 @@ static void print_field(struct printf_state_machine *psm, char *field) {
 		l++;
 	}
 	field[l] = '\0';
-	
-	psm->minfieldwidth -= l;
+	if (psm->specifier == 'x' || psm->specifier == 'X' || psm->specifier == 'o' || psm->specifier == 'd' || psm->specifier == 'i')
+		strrev(field); // numbers are backwards
+
+	int padding = psm->minfieldwidth - l;
 	if (psm->flags.left_justify) {
-		while (l > 0) {
-			l--;
-			addchartoprintfbuffer(psm, field[l]);
+		int i;
+		for (i = 0; i < l; i++) {
+			addchartoprintfbuffer(psm, field[i]);
 		}
-		while (psm->minfieldwidth > 0) {
+		while (padding > 0) {
 			addchartoprintfbuffer(psm, psm->flags.leftpadwithzeroes ? '0' : ' ');
-			psm->minfieldwidth--;
+			padding--;
 		}
 	} else { // default: field is right justified within the field width
-		while (psm->minfieldwidth > 0) {
+		while (padding > 0) {
 			addchartoprintfbuffer(psm, psm->flags.leftpadwithzeroes ? '0' : ' ');
-			psm->minfieldwidth--;
+			padding--;
 		}
-		while (l > 0) {
-			l--;
-			addchartoprintfbuffer(psm, field[l]);
+		int i;
+		for (i = 0; i < l; i++) {
+			addchartoprintfbuffer(psm, field[i]);
 		}
 	}
 }
 
+static void reset_specifier_read(struct printf_state_machine *psm) {
+	psm->readingstate = READNEXTCHAR;
+	psm->flags.left_justify = 0;
+	psm->flags.mustshowsign = 0;
+	psm->flags.blankspaceinplaceofsign = 0;
+	psm->flags.show0xor0 = 0;
+	psm->flags.leftpadwithzeroes = 0;
+	psm->minfieldwidth = 0;
+	psm->length_modifier = NONE;
+	psm->sign = '+';
+}
 
 static void init_printf_state_machine(const char *fmt, struct printf_state_machine *psm) {
 	psm->readingstate = READNEXTCHAR;
 	psm->readingpos = fmt;
-
+	psm->currentchar = *(psm->readingpos);
 	psm->charswritten = 0;
 	psm->buffcount = 0;
 	psm->flags.left_justify = 0;
@@ -115,85 +115,92 @@ static void init_printf_state_machine(const char *fmt, struct printf_state_machi
 	psm->error_indicator = 0;
 }
 
-int hasnextchar(struct printf_state_machine *psm) {
-	return *(psm->readingpos) != '\0';
-}
+//int hasnextchar(struct printf_state_machine *psm) {
+//	return *(psm->readingpos) != '\0';
+//}
 
-char nextchar(struct printf_state_machine *psm) {
-	psm->currentchar = *(psm->readingpos);
+char readnextchar(struct printf_state_machine *psm) {
 	psm->readingpos++;
+	psm->currentchar = *(psm->readingpos);
 	return psm->currentchar;
 }
+	
 
 int printf(const char *fmt, ...) {
-
 	va_list args;
-	va_start(args, fmt); // let the variadic argument extraction begin
+	va_start(args, fmt);
+	int writecount = vprintf(fmt, args);
+	va_end(args);
+	return writecount;
+}
+
+int vprintf(const char *fmt, va_list args) {
+
 	struct printf_state_machine psm; // by allocating it on the stack, we avoid race conditions
 	init_printf_state_machine(fmt, &psm);
 
-	while (hasnextchar(&psm)) { // while we still have characters in the format string to read, do:
+	while (psm.currentchar != '\0') { // while we still have characters in the format string to read, do:
 		
 		switch (psm.readingstate) {
 		case READNEXTCHAR:
-			;char c = nextchar(&psm);
-			if (c == '%') {
+			if (psm.currentchar == '%') {
 				psm.readingstate = READFLAGS;
-				nextchar(&psm);
 			} else {
-				addchartoprintfbuffer(&psm, c);
+				addchartoprintfbuffer(&psm, psm.currentchar);
 			}
+			readnextchar(&psm);
 			break;
 		case READFLAGS:
 			switch (psm.currentchar) {
 			case '-':
 				psm.flags.left_justify = 1;
-				nextchar(&psm);
+				readnextchar(&psm);
 				break;
 			case '+':
 				psm.flags.mustshowsign = 1;
-				nextchar(&psm);
+				readnextchar(&psm);
 				break;
 			case ' ':
 				psm.flags.blankspaceinplaceofsign = 1;
-				nextchar(&psm);
+				readnextchar(&psm);
 				break;
 			case '#':
 				psm.flags.show0xor0 = 1;
-				nextchar(&psm);
+				readnextchar(&psm);
 				break;
 			case '0':
 				psm.flags.leftpadwithzeroes = 1;
-				nextchar(&psm);
+				readnextchar(&psm);
 				break;
 			default:
 				psm.readingstate = READWIDTH;
+				break;
 			}
+			break;
 		case READWIDTH:
 			if (psm.currentchar == '*') {
 				psm.minfieldwidth = va_arg(args, int); // read the minimum field width from the next printf argument
-				nextchar(&psm);
+				readnextchar(&psm);
 			} else if (isdigit(psm.currentchar)) {
 				psm.minfieldwidth = strtol(psm.readingpos, (char**)&psm.readingpos, 10); // read number representing the width
-				nextchar(&psm);
 			} else {
 				psm.readingstate = READLENGTH;
 			}
 			break;
 		case READLENGTH: // length modifiers are 'hh', 'h', 'l', 'll'
 			if (psm.currentchar == 'h') {
-				nextchar(&psm);
+				readnextchar(&psm);
 				if (psm.currentchar == 'h') { // hh
 					psm.length_modifier = HH;
-					nextchar(&psm);
+					readnextchar(&psm);
 				} else { // h
 					psm.length_modifier = H;
 				}
 			} else if (psm.currentchar == 'l') {
-				nextchar(&psm);
+				readnextchar(&psm);
 				if (psm.currentchar == 'l') { // ll
 					psm.length_modifier = LL;
-					nextchar(&psm);
+					readnextchar(&psm);
 				} else { // l
 					psm.length_modifier = L;
 				}
@@ -203,9 +210,6 @@ int printf(const char *fmt, ...) {
 		case READSPECIFIER:
 			psm.specifier = psm.currentchar;
 			switch (psm.specifier) {
-			case '\0':
-				psm.error_indicator = INCOMPLETESPECIFIERERROR;
-				break;
 			case 'c':
 				psm.asciinumberfield[0] = (char)va_arg(args, int);
 				psm.asciinumberfield[1] = '\0';
@@ -254,11 +258,16 @@ int printf(const char *fmt, ...) {
 				break;
 			case 'o':
 				uitoa(va_arg(args, unsigned int), psm.asciinumberfield, 8);
-				break;
-			case 'p': // issue: we cast the unsigned pointer to an unsigned int, which works on this specific architecture
-				uitoa((unsigned int)va_arg(args, void*), psm.asciinumberfield, 16);
-				psm.flags.show0xor0 = 1;
 				print_field(&psm, psm.asciinumberfield);
+				break;
+			case 'p': // issue: we cast the pointer to an unsigned int, which works on this specific 32 bit architecture
+				puts("in specifier p handler");
+				uitoa((unsigned int)va_arg(args, void*), psm.asciinumberfield, 16);
+				puts("after uitoa");
+				psm.flags.show0xor0 = 1;
+				psm.specifier = 'x';
+				print_field(&psm, psm.asciinumberfield);
+				puts("after print_field");
 				break;
 			case 'X':
 			case 'x':
@@ -269,14 +278,15 @@ int printf(const char *fmt, ...) {
 				break;
 			default:
 				psm.error_indicator = UNKNOWNFORMATSPECIFIER;
-			}
-
+				return psm.error_indicator;
+			} // end switch (specifier)
+			readnextchar(&psm);
 			reset_specifier_read(&psm); // go back to reading regular character sequences
 			break;
-		}
+		} // end switch (curent character)
 		
-		
-	}
+	} // while there are still characters to read from the format string
+	
 	if (psm.readingstate != READNEXTCHAR) { // error: in the middle of an incomplete format specifier
 		psm.error_indicator = INCOMPLETESPECIFIERERROR;
 	}
@@ -284,12 +294,10 @@ int printf(const char *fmt, ...) {
 	// whatever is left in the buffer must be flushed
 	flushprintfbuffer(&psm);
 	
-	va_end(args);
-
 	if (psm.error_indicator == 0)
-		return psm.charswritten;
+		return psm.charswritten; // return total number of characters written
 	else
-		return psm.error_indicator;
+		return psm.error_indicator; // (negative) error indicator returned
 }
 
 

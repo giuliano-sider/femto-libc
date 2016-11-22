@@ -6,13 +6,13 @@
 #include "femtolibc.h"
 
 int printf(const char *fmt, ...);
+int vprintf(const char *fmt, va_list args);
 	
-#define PRINTFBUFFSIZE 4096
+#define PRINTFBUFFSIZE 256
 #define STDOUTWRITEERROR -1
 #define INCOMPLETESPECIFIERERROR -2
 #define UNKNOWNFORMATSPECIFIER -3
 
-#define STDOUT 1
 
 struct printf_state_machine {
 	enum printf_machine_state {

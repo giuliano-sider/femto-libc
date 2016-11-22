@@ -57,6 +57,27 @@ char *strrev(char *s) {
 	return s;
 }
 
+int getchar() { // returns int so it can signal EOF, but we don't really do that here: it just blocks until the terminal reads a character
+	int c;
+	while (read(STDIN, &c, 1) != 1)
+		;
+	return c;
+}
+
+int puts(const char *s) { // returns EOF on error, and non negative number on success. appends trailing newline
+	char c = '\n';
+	int count = 0, l = strlen(s), wc;
+	while ((wc = write(STDOUT, s + count, l - count)) < l - count) {
+		if (wc < 0) // error
+			return EOF;
+		count += wc;
+	}
+	while ((wc = write(STDOUT, &c, 1)) != 1)
+		if (wc < 0)
+			return EOF;
+
+	return 0; // success
+}
 
 
 // issues: does not treat underflow/overflow. does not set errno.

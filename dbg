@@ -1,9 +1,10 @@
 target remote localhost:5000
 b _start
-b flushprintfbuffer
+b vprintf
+#b flushprintfbuffer
 #b addchartoprintfbuffer
-b reset_specifier_read
-b print_field
+#b reset_specifier_read
+#b print_field
 #b init_printf_state_machine
 #b hasnextchar
 #b nextchar
@@ -18,3 +19,7 @@ b print_field
 #b uitoa
 #b strtoupper
 c
+c
+c
+c
+
