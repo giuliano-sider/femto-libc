@@ -8,8 +8,11 @@ static int printftest();
 
 void _start() {
 	
-	printf("total bytes written to standard output: %d\n", printftest());
-	while (1) { // 
+	int returnval;
+	if (returnval = printf("total bytes written to standard output: %d\n", printftest()) < 0)
+		puts("ERROR: printf returned negative value\n");
+
+	while (1) { // hang
 		char c = getchar();
 		printf("we are not accepting input today. here is your char back: %c\n", c);
 	}
@@ -24,32 +27,34 @@ static int printftest() {
 	if ((val = printf("here's a character: %c, and another: %c and even a percent: %%\n", 'a', 'Z')) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start: %p\n", (void*)&_start)) < 0)
+	if ((val = printf("this is the address of _start + 12: %p\n", (void*)&_start + 12)) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start: %x\n", (unsigned int)&_start)) < 0)
+	if ((val = printf("this is the address of _start + 12: %x\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start: %X\n", (unsigned int)&_start)) < 0)
+	if ((val = printf("this is the address of _start + 12: %X\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start: %08x\n", (unsigned int)&_start)) < 0)
+	if ((val = printf("this is the address of _start + 12: %010x\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start: %#08x\n", (unsigned int)&_start)) < 0)
+	if ((val = printf("this is the address of _start + 12: %#08x\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start: %-30x\n", (unsigned int)&_start)) < 0)
+	if ((val = printf("this is the address of _start + 12: %-030x\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start: %030x\n", (unsigned int)&_start)) < 0)
+	if ((val = printf("this is the address of _start + 12: %030x\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
 	if ((val = printf("some numbers: %d %i %o %x %X %u\n", -2, -2, -2, -2, -2, -2)) < 0)
 		return val; // error
 	count += val;
-	int chars;
-	if ((val = printf("number of characters printed so far in this string: %n%d\n", &chars, chars)) < 0)
+	int chars = 989;
+	if ((val = printf("number of characters printed so far in this string: %n\n", &chars)) < 0)
+		return val; // error
+	if ((val = printf("%d\n", chars)) < 0)
 		return val; // error
 	count += val;
 

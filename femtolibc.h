@@ -13,14 +13,22 @@
 #include "divmod.h"
 
 
+// debug time macros
 
+#ifndef SIGNOFFALLFUNCTIONS
+#define SIGN(s) puts(s);
+#else
+#define SIGN(s) 
+#endif
 
-// arm-eabi-gdbtui is behaving badly
+#define NDEBUG
+// arm-eabi-gdbtui is behaving badly: it does a 'continue' instead of a 'next' or 'step' in many situations
 #ifndef NDEBUG
 #define debugprint(s) puts(s);
 #else 
 #define debugprint(s)
 #endif
+
 
 int strlen(const char *s);
 int isspace(int c);

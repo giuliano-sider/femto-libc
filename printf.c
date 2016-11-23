@@ -11,7 +11,7 @@
 
 
 
-// flushes the printf internal buffer to stdout. returns number of characters written
+// flushes the printf internal buffer to stdout. returns number of characters written, or negative value on error (also sets the printf error indicator)
 static int flushprintfbuffer(struct printf_state_machine *psm) {
 	int writecount = 0;
 	while (psm->buffcount > 0) { // make sure all bytes are actually written to stdout 
@@ -61,8 +61,9 @@ static void print_field(struct printf_state_machine *psm, char *field) {
 	}
 	debugprint("print_field 2")
 	field[l] = '\0';
-	if (psm->specifier == 'x' || psm->specifier == 'X' || psm->specifier == 'o' || psm->specifier == 'd' || psm->specifier == 'i')
+	if (psm->specifier == 'x' || psm->specifier == 'X' || psm->specifier == 'o' || psm->specifier == 'd' || psm->specifier == 'i') {
 		strrev(field); // numbers are backwards
+	}
 	debugprint("print_field 3")
 	int padding = psm->minfieldwidth - l;
 	if (psm->flags.left_justify) {
@@ -96,6 +97,8 @@ static void reset_specifier_read(struct printf_state_machine *psm) {
 	psm->flags.leftpadwithzeroes = 0;
 	psm->minfieldwidth = 0;
 	psm->length_modifier = NONE;
+	psm->asciinumberfield[0] = '\0';
+	psm->specifier = '\0';
 	psm->sign = '+';
 }
 
@@ -107,15 +110,13 @@ static void init_printf_state_machine(const char *fmt, struct printf_state_machi
 	psm->buffcount = 0;
 	psm->flags.left_justify = 0;
 	psm->flags.mustshowsign = 0;
+	psm->flags.blankspaceinplaceofsign = 0;
 	psm->flags.show0xor0 = 0;
 	psm->flags.leftpadwithzeroes = 0;
 	psm->minfieldwidth = 0; // means there is no minimum field width
 	psm->length_modifier = NONE;
-
-
-
-
-
+	psm->asciinumberfield[0] = '\0';
+	psm->specifier = '\0';
 	psm->sign = '+';
 	psm->error_indicator = 0;
 }
@@ -140,14 +141,15 @@ int printf(const char *fmt, ...) {
 }
 
 int vprintf(const char *fmt, va_list args) {
+	SIGN("vprintf\n")
 
 	struct printf_state_machine psm; // by allocating it on the stack, we avoid race conditions
 	init_printf_state_machine(fmt, &psm);
 
 	while (psm.currentchar != '\0') { // while we still have characters in the format string to read, do:
 		
-		switch (psm.readingstate) {
-		case READNEXTCHAR:
+		switch (psm.readingstate) { // are we reading a format specifier
+		case READNEXTCHAR: // reading normal characters from the format string
 			if (psm.currentchar == '%') {
 				psm.readingstate = READFLAGS;
 			} else {
@@ -178,7 +180,7 @@ int vprintf(const char *fmt, va_list args) {
 				readnextchar(&psm);
 				break;
 			default:
-				psm.readingstate = READWIDTH;
+				psm.readingstate = READWIDTH; // no more flags to read
 				break;
 			}
 			break;
@@ -187,10 +189,10 @@ int vprintf(const char *fmt, va_list args) {
 				psm.minfieldwidth = va_arg(args, int); // read the minimum field width from the next printf argument
 				readnextchar(&psm);
 			} else if (isdigit(psm.currentchar)) {
-				psm.minfieldwidth = strtol(psm.readingpos, (char**)&psm.readingpos, 10); // read number representing the width
-			} else {
-				psm.readingstate = READLENGTH;
+				psm.minfieldwidth = strtol(psm.readingpos, (char**)&psm.readingpos, 10); // read number representing the width from the format string. strtol updates the reading position to past the end of the parsed number
+				psm.currentchar = *psm.readingpos;
 			}
+			psm.readingstate = READLENGTH;
 			break;
 		case READLENGTH: // length modifiers are 'hh', 'h', 'l', 'll'
 			if (psm.currentchar == 'h') {
@@ -214,7 +216,7 @@ int vprintf(const char *fmt, va_list args) {
 			break;
 		case READSPECIFIER:
 			psm.specifier = psm.currentchar;
-			switch (psm.specifier) {
+			switch (psm.specifier) { // note: int and unsigned int are the minimum width numbers we can read from the variadic argument list
 			case 'c':
 				psm.asciinumberfield[0] = (char)va_arg(args, int);
 				psm.asciinumberfield[1] = '\0';
@@ -223,7 +225,7 @@ int vprintf(const char *fmt, va_list args) {
 			case 's':
 				print_field(&psm, va_arg(args, char *));
 				break;
-			case 'n':
+			case 'n': // we write the number of characters written so far to the place pointed to by the user's argument
 				switch (psm.length_modifier) {
 				case NONE:
 					*va_arg(args, int*) = psm.charswritten + psm.buffcount;
@@ -266,13 +268,13 @@ int vprintf(const char *fmt, va_list args) {
 				print_field(&psm, psm.asciinumberfield);
 				break;
 			case 'p': // issue: we cast the pointer to an unsigned int, which works on this specific 32 bit architecture
-				debugprint("in specifier p handler, before utioa");
+				debugprint("in specifier p handler, before utioa")
 				uitoa((unsigned int)va_arg(args, void*), psm.asciinumberfield, 16);
-				puts("in specifier p handler, after uitoa");
+				debugprint("in specifier p handler, after uitoa")
 				psm.flags.show0xor0 = 1;
 				psm.specifier = 'x';
 				print_field(&psm, psm.asciinumberfield);
-				puts("in specifier p handler, after print_field");
+				debugprint("in specifier p handler, after print_field")
 				break;
 			case 'X':
 			case 'x':
@@ -284,11 +286,12 @@ int vprintf(const char *fmt, va_list args) {
 			default:
 				psm.error_indicator = UNKNOWNFORMATSPECIFIER;
 				return psm.error_indicator;
-			} // end switch (specifier)
+			} // end switch (process current specifier)
+
 			readnextchar(&psm);
 			reset_specifier_read(&psm); // go back to reading regular character sequences
 			break;
-		} // end switch (curent character)
+		} // end switch (process curent character in format string)
 		
 	} // while there are still characters to read from the format string
 	

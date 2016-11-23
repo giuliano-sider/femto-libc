@@ -30,11 +30,8 @@ int toupper(int c) {
 }
 
 void strtoupper(char *s) {
-	while (*s != '\0') {
-		if ('a' <= *s && *s <= 'z')
-			*s -= 'a' - 'A';
-		s++;
-	}
+	for ( ; *s != '\0'; s++)
+		*s = toupper(*s);
 }
 
 void *memset(void *buff, int byte, int n) {
@@ -46,23 +43,23 @@ void *memset(void *buff, int byte, int n) {
 	return buff;
 }
 
-char *strrev(char *s) {
+char *strrev(char *s) { // reverse this bagasse. yes the word bagasse exists: https://en.wikipedia.org/wiki/Bagasse
 	int l = strlen(s) - 1;
 	int i = 0;
-	while (i < l) {
+	for ( ; i < l; i++, l--) {
 		debugprint("in strrev")
 		char tmp = s[l];
 		s[l] = s[i];
 		s[i] = tmp;
-		i++;
 	}
 	return s;
 }
 
-int getchar() { // returns int so it can signal EOF, but we don't really do that here: it just blocks until the terminal reads a character
-	int c;
-	while (read(STDIN, &c, 1) != 1)
-		;
+int getchar() { // returns int so it can signal EOF
+	int c, count;
+	while ((count = read(STDIN, &c, 1)) < 1)
+		if (count < 0)
+			return EOF;
 	return c;
 }
 
@@ -74,7 +71,7 @@ int puts(const char *s) { // returns EOF on error, and non negative number on su
 			return EOF;
 		count += wc;
 	}
-	while ((wc = write(STDOUT, &c, 1)) != 1)
+	while ((wc = write(STDOUT, &c, 1)) < 1)
 		if (wc < 0)
 			return EOF;
 
@@ -89,38 +86,40 @@ long int strtol(const char *nptr, char **endptr, int base) {
 	long int number = 0, sign = 1; // we return 0 if there are no digits
 	while (*nptr != '\0' && isspace(*nptr)) // we are allowed to have leading spaces
 		nptr++;
-	if (*nptr != '\0') {
-		if (*nptr == '+') { // a leading + or - is allowed
-			++nptr;
-		} else if (*nptr == '-') {
-			sign = -1;
-			++nptr;
-		}
-		if ((base == 0 || base == 16) && *nptr != '\0' && *nptr == '0' && *(nptr+1) != '\0' && (*(nptr+1) == 'x' || *(nptr+1) == 'X')) {
-			base = 16; // use base 16 when base is 0 and string preceded by 0x or 0X
-			nptr += 2;
-		} else if (base == 0 && *nptr != '\0' && *nptr == '0') {
-			base = 8; // use base 8 when base is 0 and string preceded by 0
-			++nptr;
-		} else if (base == 0 && *nptr != '\0' && isdigit(*nptr)) {
-			base = 10;
-		}
-		if (base < 2 || base > 36)
-			return 0; // ERROR. set some errno ??
-		while (isdigit(*nptr) || isalpha(*nptr)) {
-			int n = *nptr;
-			if (isalpha(*nptr)) { // convert {A,a,B,b, ... Z,z} to the corresponding number
-				n = 10 + toupper(*nptr) - 'A';
-			}
-			if (n >= base)
-				break;
-			number *= base;
-			number += n;
-			++nptr;
-		}
+
+	if (*nptr == '+') { // a leading + or - is allowed
+		++nptr;
+	} else if (*nptr == '-') {
+		sign = -1;
+		++nptr;
 	}
+	if ((base == 0 || base == 16) && *nptr != '\0' && *nptr == '0' && (*(nptr+1) == 'x' || *(nptr+1) == 'X')) {
+		base = 16; // use base 16 when base is 0 and string preceded by 0x or 0X
+		nptr += 2;
+	} else if (base == 0 && *nptr != '\0' && *nptr == '0') {
+		base = 8; // use base 8 when base is 0 and string preceded by 0
+		++nptr;
+	} else if (base == 0 && *nptr != '\0' && isdigit(*nptr)) {
+		base = 10;
+	}
+	if (base < 2 || base > 36)
+		return 0; // ERROR. set some errno ??
+	while (isdigit(*nptr) || isalpha(*nptr)) {
+		int n = *nptr;
+		if (isalpha(*nptr)) { // convert {A,a,B,b, ... Z,z} to the corresponding number
+			n = 10 + toupper(*nptr) - 'A';
+		} else { // digit
+			n -= '0';
+		}
+		if (n >= base)
+			break;
+		number *= base;
+		number += n;
+		++nptr;
+	}
+
 	if (endptr != NULL)
-		*endptr = (char*)nptr;
+		*endptr = (char*)nptr; // updates the string pointer if this parameter was set to non null
 	return number * sign;
 }
 
@@ -139,17 +138,15 @@ int uitoa(unsigned int number, char *buff, int radix) {
 		return 0; // error: maybe set some kind of errno?
 	int length = 0;
 	if (number == 0) {
-		*buff = '0';
-		buff++;
-		length++;
+		buff[0] = '0';
+		length = 1;
 	}
 	while (number > 0) {
-		*buff = digits[umod(number, radix)];
+		buff[length] = digits[umod(number, radix)];
 		number = udiv(number, radix); // homebrew division functions
-		buff++;
 		length++;
 	}
-	*buff = '\0';
+	buff[length] = '\0';
 	return length;
 }
 

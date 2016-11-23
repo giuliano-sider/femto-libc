@@ -1,6 +1,9 @@
 target remote localhost:5000
 b _start
-b vprintf
+b printf.c:191
+b printf.c:193
+c
+#b vprintf
 #b flushprintfbuffer
 #b addchartoprintfbuffer
 #b reset_specifier_read
@@ -18,8 +21,4 @@ b vprintf
 #b strtol
 #b uitoa
 #b strtoupper
-c
-c
-c
-c
 
