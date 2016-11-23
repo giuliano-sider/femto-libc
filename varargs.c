@@ -9,7 +9,7 @@ static int printftest();
 void _start() {
 	
 	int returnval;
-	if (returnval = printf("total bytes written to standard output: %d\n", printftest()) < 0)
+	if ((returnval = printf("total bytes written to standard output: %d\n", printftest())) < 0)
 		puts("ERROR: printf returned negative value\n");
 
 	while (1) { // hang
@@ -42,19 +42,23 @@ static int printftest() {
 	if ((val = printf("this is the address of _start + 12: %#08x\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start + 12: %-030x\n", (unsigned int)&_start + 12)) < 0)
+	if ((val = printf("this is the address of _start + 12: %- 030x\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
-	if ((val = printf("this is the address of _start + 12: %030x\n", (unsigned int)&_start + 12)) < 0)
+	if ((val = printf("this is the address of _start + 12: %+030x\n", (unsigned int)&_start + 12)) < 0)
 		return val; // error
 	count += val;
 	if ((val = printf("some numbers: %d %i %o %x %X %u\n", -2, -2, -2, -2, -2, -2)) < 0)
 		return val; // error
 	count += val;
 	int chars = 989;
-	if ((val = printf("number of characters printed so far in this string: %n\n", &chars)) < 0)
+	if ((val = printf("number of characters printed so far in this string: %n(this string has some more characters too)\n", &chars)) < 0)
 		return val; // error
+	count += val;
 	if ((val = printf("%d\n", chars)) < 0)
+		return val; // error
+	count += val;
+	if ((val = printf("some numbers: %i %o %x %c %X\n", 1234, 1234, 1234, 1234, 1234)) < 0)
 		return val; // error
 	count += val;
 

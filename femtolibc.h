@@ -14,8 +14,8 @@
 
 
 // debug time macros
-
-#ifndef SIGNOFFALLFUNCTIONS
+#define NOSIGN
+#ifndef NOSIGN
 #define SIGN(s) puts(s);
 #else
 #define SIGN(s) 

@@ -1,0 +1,19 @@
+FEMTO LIBC: a freestanding implementation of some classic libc functions, notably printf.
+Implemented for an ARM eabi compatible simulator of an ARM Cortex A8 core (it runs on top
+of operating system services like POSIX 'read' and 'write' system calls).
+
+Use 
+	git clone https://github.com/giuliano-sider/femto-libc.git
+to download it. 
+Use 'make' to build the static library libfemtolibc.a,
+and use 'make run' to run a few tests (add a few more if you feel charitable).
+Use 'git pull' to pull updates/bug fixes, if any are available in the repo.
+
+Include "femtolibc.h" in your compilation units and make sure to add the femtolibc folder
+to the compiler's include path (-Lsomefolderhere) and the same folder to the linker's
+static library path (-Lsomefolderhere), as well as adding -lfemtolibc to the linker
+command line. Remember that the library must appear after your compiled object files
+on the linker command line (ld expects objects to appear in 'reverse topological order').
+Make sure that you leave enough space for the .text, .data, and .rodata sections in your
+executable; ld should complain about overlapping sections if your linker options/script
+did not allow enough space.
